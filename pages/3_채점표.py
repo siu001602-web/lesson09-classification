@@ -67,7 +67,6 @@ y_pred_base = np.full_like(y_test, fill_value=majority_class)
 
 # 5. 혼동행렬 및 지표 계산 함수
 def calc_metrics(y_true, y_pred):
-    # TP, FP, FN, TN 계산 (양성: stroke=1, 음성: stroke=0)
     tp = int(np.sum((y_true == 1) & (y_pred == 1)))
     fp = int(np.sum((y_true == 0) & (y_pred == 1)))
     fn = int(np.sum((y_true == 1) & (y_pred == 0)))
@@ -75,11 +74,8 @@ def calc_metrics(y_true, y_pred):
     
     total = len(y_true)
     accuracy = (tp + tn) / total if total > 0 else 0.0
-    
-    # 재현율: 실제 뇌졸중 중 뇌졸중이라 예측한 비율
     recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
     
-    # 정밀도: 뇌졸중이라 예측한 사람 중 실제 뇌졸중인 비율
     if (tp + fp) == 0:
         precision_str = "계산할 수 없음"
         f1_str = "계산할 수 없음"
@@ -176,7 +172,8 @@ st.subheader("🔍 오예측 데이터 분석")
 
 selected_model_name = st.selectbox(
     "오예측 명단을 확인할 모델을 선택하세요:",
-    ["로지스틱 회귀(확률로 답하는 모델)", "의사결정트리(질문으로 답하는 모델)"]
+    ["로지스틱 회귀(확률로 답하는 모델)", "의사결정트리(질문으로 답하는 모델)"],
+    key="eval_model_selector"
 )
 
 if selected_model_name == "로지스틱 회귀(확률로 답하는 모델)":
@@ -186,7 +183,7 @@ else:
     pred_values = y_pred_dt
     current_m = m_dt
 
-# 테스트 데이터프레임에 예측값 붙이기
+# 테스트 데이터프레임에 예측값 반영
 test_eval_df = test_df.copy()
 test_eval_df['pred'] = pred_values
 
@@ -216,7 +213,7 @@ fp_display = fp_df[display_cols].rename(columns=korean_col_names)
 col_list1, col_list2 = st.columns(2)
 
 with col_list1:
-    st.markdown(f"### 🚨 놓친 환자 (실제 뇌졸중 → 아니라고 예측) [총 {len(fn_df)}명]")
+    st.markdown(f"### 🚨 놓친 환자 [총 {len(fn_df)}명]")
     if len(fn_display) > 20:
         st.caption("※ 인원이 20명을 초과하여 나이가 많은 상위 20명만 표시합니다.")
         st.dataframe(fn_display.head(20), use_container_width=True, hide_index=True)
@@ -224,7 +221,7 @@ with col_list1:
         st.dataframe(fn_display, use_container_width=True, hide_index=True)
 
 with col_list2:
-    st.markdown(f"### ⚠️ 헛짚은 사람 (실제 정상 → 뇌졸중이라고 예측) [총 {len(fp_df)}명]")
+    st.markdown(f"### ⚠️ 헛짚은 사람 [총 {len(fp_df)}명]")
     if len(fp_display) > 20:
         st.caption("※ 인원이 20명을 초과하여 나이가 많은 상위 20명만 표시합니다.")
         st.dataframe(fp_display.head(20), use_container_width=True, hide_index=True)
@@ -232,6 +229,7 @@ with col_list2:
         st.dataframe(fp_display, use_container_width=True, hide_index=True)
 
 st.markdown(
-    f"💡 **참고**: '놓친 환자'의 전체 인원수(**{len(fn_df)}명**)는 위 혼동행렬의 **FN 칸**과 같고, "
-    f"'헛짚은 사람'의 전체 인원수(**{len(fp_df)}명**)는 **FP 칸**과 정확히 일치합니다."
+    f"💡 **참고**: 선택하신 **{selected_model_name}** 기준 '놓친 환자'의 전체 인원수(**{len(fn_df)}명**)는 "
+    f"위 혼동행렬의 **FN 칸({current_m['fn']}명)**과 같고, "
+    f"'헛짚은 사람'의 전체 인원수(**{len(fp_df)}명**)는 **FP 칸({current_m['fp']}명)**과 정확히 일치합니다."
 )
